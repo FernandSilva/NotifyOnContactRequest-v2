@@ -11,7 +11,6 @@ export default async ({ req, log, error }) => {
 
   try {
     const body = JSON.parse(req.body);
-
     const contactData = body?.payload || {};
 
     const name = contactData.name || "Unknown";
@@ -22,8 +21,7 @@ export default async ({ req, log, error }) => {
       <h2>New Contact Form Submission</h2>
       <p><strong>Name:</strong> ${name}</p>
       <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Message:</strong></p>
-      <p>${message}</p>
+      <p><strong>Message:</strong><br/>${message}</p>
     `;
 
     await functions.createExecution(process.env.EMAIL_FUNCTION_ID, JSON.stringify({
@@ -32,9 +30,9 @@ export default async ({ req, log, error }) => {
       html: emailContent,
     }), true);
 
-    log("Email notification triggered via function execution.");
+    log("✅ Email notification triggered.");
   } catch (err) {
-    error("Error in notify-on-contact-request function", err.message);
+    error("❌ Failed to trigger email notification:", err.message);
   }
 };
 
