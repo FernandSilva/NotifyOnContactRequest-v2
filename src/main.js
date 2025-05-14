@@ -1,35 +1,40 @@
-import { Client, Users } from 'node-appwrite';
+import sdk from "node-appwrite";
 
-// This Appwrite function will be executed every time your function is triggered
-export default async ({ req, res, log, error }) => {
-  // You can use the Appwrite SDK to interact with other services
-  // For this example, we're using the Users service
-  const client = new Client()
-    .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
-    .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-    .setKey(req.headers['x-appwrite-key'] ?? '');
-  const users = new Users(client);
+export default async ({ req, log, error }) => {
+  const client = new sdk.Client()
+    .setEndpoint(process.env.APPWRITE_ENDPOINT)
+    .setProject(process.env.APPWRITE_PROJECT_ID)
+    .setKey(process.env.APPWRITE_API_KEY);
+
+  const databases = new sdk.Databases(client);
+  const functions = new sdk.Functions(client);
 
   try {
-    const response = await users.list();
-    // Log messages and errors to the Appwrite Console
-    // These logs won't be seen by your end users
-    log(`Total users: ${response.total}`);
-  } catch(err) {
-    error("Could not list users: " + err.message);
-  }
+    const body = JSON.parse(req.body);
 
-  // The req object contains the request data
-  if (req.path === "/ping") {
-    // Use res object to respond with text(), json(), or binary()
-    // Don't forget to return a response!
-    return res.text("Pong");
-  }
+    const contactData = body?.payload || {};
 
-  return res.json({
-    motto: "Build like a team of hundreds_",
-    learn: "https://appwrite.io/docs",
-    connect: "https://appwrite.io/discord",
-    getInspired: "https://builtwith.appwrite.io",
-  });
+    const name = contactData.name || "Unknown";
+    const email = contactData.email || "Unknown";
+    const message = contactData.message || "No message provided.";
+
+    const emailContent = `
+      <h2>New Contact Form Submission</h2>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Message:</strong></p>
+      <p>${message}</p>
+    `;
+
+    await functions.createExecution(process.env.EMAIL_FUNCTION_ID, JSON.stringify({
+      to: process.env.ADMIN_EMAIL,
+      subject: `GrowBuddy Contact Form Submission from ${name}`,
+      html: emailContent,
+    }), true);
+
+    log("Email notification triggered via function execution.");
+  } catch (err) {
+    error("Error in notify-on-contact-request function", err.message);
+  }
 };
+
