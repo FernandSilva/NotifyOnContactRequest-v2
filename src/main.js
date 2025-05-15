@@ -21,25 +21,30 @@ export default async ({ req, res, log, error }) => {
 
     const mailOptions = {
       from: `"GrowBuddy Contact" <${process.env.SMTP_USER}>`,
-      to: process.env.ADMIN_EMAIL, // ✅ Make sure this is set in .env!
-      subject: `New Contact Form Submission from ${name}`,
+      to: process.env.ADMIN_EMAIL,
+      subject: `📨 New Support Task Submitted by ${name}`,
       html: `
-        <h2>New Contact Form Submission</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Message:</strong><br/>${message}</p>
-        <hr />
-        <p style="font-size: 12px; color: #888;">
-          You received this message via the GrowBuddy Contact Us form.
-        </p>
+        <div style="font-family: sans-serif; font-size: 14px; line-height: 1.5;">
+          <h2 style="color: #2e7d32;">GrowBuddy Support Notification</h2>
+          <p>You have received a new support task from a GrowBuddy user. Details below:</p>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Message:</strong></p>
+          <blockquote style="margin: 1em 0; padding-left: 1em; border-left: 2px solid #ccc;">
+            ${message}
+          </blockquote>
+          <hr />
+          <p style="font-size: 12px; color: #888;">
+            This message was sent automatically from the GrowBuddy Contact Us form.
+          </p>
+        </div>
       `,
     };
 
-    // ✅ Send the email
     await transporter.sendMail(mailOptions);
 
     log("✅ Email sent successfully.");
-    return res.empty(); // ✅ Use 'res' not 'context.res'
+    return res.empty();
   } catch (err) {
     error("❌ Email sending failed:", err.message);
     return res.send(`Error: ${err.message}`, 500);
