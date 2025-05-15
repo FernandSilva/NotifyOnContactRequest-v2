@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 
-export default async ({ req, log, error }) => {
+export default async ({ req, res, log, error }) => {
   try {
     const body = JSON.parse(req.body);
     const contactData = body?.payload || {};
@@ -12,7 +12,7 @@ export default async ({ req, log, error }) => {
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT),
-      secure: false, // use STARTTLS, not SSL
+      secure: false,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -21,7 +21,7 @@ export default async ({ req, log, error }) => {
 
     const mailOptions = {
       from: `"GrowBuddy Contact" <${process.env.SMTP_USER}>`,
-      to: process.env.ADMIN_EMAIL,
+      to: process.env.ADMIN_EMAIL, // ✅ Make sure this is set in .env!
       subject: `New Contact Form Submission from ${name}`,
       html: `
         <h2>New Contact Form Submission</h2>
@@ -35,12 +35,13 @@ export default async ({ req, log, error }) => {
       `,
     };
 
+    // ✅ Send the email
     await transporter.sendMail(mailOptions);
 
-    log("✅ Email sent successfully using Nodemailer + SMTP.");
-    return context.res.empty();
+    log("✅ Email sent successfully.");
+    return res.empty(); // ✅ Use 'res' not 'context.res'
   } catch (err) {
     error("❌ Email sending failed:", err.message);
-    return context.res.empty();
+    return res.send(`Error: ${err.message}`, 500);
   }
 };
