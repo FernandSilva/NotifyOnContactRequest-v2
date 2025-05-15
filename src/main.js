@@ -1,14 +1,6 @@
-import sdk from "node-appwrite";
+import nodemailer from "nodemailer";
 
 export default async ({ req, log, error }) => {
-  const client = new sdk.Client()
-    .setEndpoint(process.env.APPWRITE_ENDPOINT)
-    .setProject(process.env.APPWRITE_PROJECT_ID)
-    .setKey(process.env.APPWRITE_API_KEY);
-
-  const databases = new sdk.Databases(client);
-  const functions = new sdk.Functions(client);
-
   try {
     const body = JSON.parse(req.body);
     const contactData = body?.payload || {};
@@ -17,22 +9,38 @@ export default async ({ req, log, error }) => {
     const email = contactData.email || "Unknown";
     const message = contactData.message || "No message provided.";
 
-    const emailContent = `
-      <h2>New Contact Form Submission</h2>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Message:</strong><br/>${message}</p>
-    `;
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT),
+      secure: false, // use STARTTLS, not SSL
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
 
-    await functions.createExecution(process.env.EMAIL_FUNCTION_ID, JSON.stringify({
+    const mailOptions = {
+      from: `"GrowBuddy Contact" <${process.env.SMTP_USER}>`,
       to: process.env.ADMIN_EMAIL,
-      subject: `GrowBuddy Contact Form Submission from ${name}`,
-      html: emailContent,
-    }), true);
+      subject: `New Contact Form Submission from ${name}`,
+      html: `
+        <h2>New Contact Form Submission</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Message:</strong><br/>${message}</p>
+        <hr />
+        <p style="font-size: 12px; color: #888;">
+          You received this message via the GrowBuddy Contact Us form.
+        </p>
+      `,
+    };
 
-    log("✅ Email notification triggered.");
+    await transporter.sendMail(mailOptions);
+
+    log("✅ Email sent successfully using Nodemailer + SMTP.");
+    return context.res.empty();
   } catch (err) {
-    error("❌ Failed to trigger email notification:", err.message);
+    error("❌ Email sending failed:", err.message);
+    return context.res.empty();
   }
 };
-
