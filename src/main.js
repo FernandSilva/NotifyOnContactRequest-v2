@@ -2,8 +2,8 @@ import nodemailer from "nodemailer";
 
 export default async ({ req, res, log, error }) => {
   try {
-    const body = JSON.parse(req.body);
-    const contactData = body?.payload || {};
+    // ✅ FIXED: removed JSON.parse
+    const contactData = req.body?.payload || {};
 
     const name = contactData.name || "Unknown";
     const email = contactData.email || "Unknown";
